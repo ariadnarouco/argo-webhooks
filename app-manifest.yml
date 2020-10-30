@@ -1,0 +1,16 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kubernetes-bootcamp
+  namespace: cre-system
+  annotations:
+    recipients.argocd-notifications.argoproj.io: webhook:github
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/ariadnarouco/argocd-app-example.git
+    targetRevision: HEAD
+    path: app
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cre-system

@@ -1,0 +1,140 @@
+affinity: {}
+
+# ArgoCD dashboard url; used in place of {{.context.argocdUrl}} in templates
+argocdUrl:
+
+fullnameOverride: ""
+
+image:
+  repository: argoprojlabs/argocd-notifications
+  tag: v0.7.0
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+nameOverride: "argocd-notifications"
+
+nodeSelector: {}
+
+updateStrategy:
+  type: Recreate
+
+secret:
+  create: true
+
+  notifiers:
+    webhooks: 
+      devhose:
+         url: https://devhose.mpi-internal.com/devhose
+         headers:
+           - name: DevHose-AuthContext
+             value: eyJ0eXBlIjoic2NoaXAifQ==
+           - name: Authorization
+             value: token eyJ0eXBlIjoic2NoaXAifQ==
+
+
+    email:
+      # For more information: https://argoproj-labs.github.io/argocd-notifications/services/overview/
+
+      # Specifies whether email notifier should be configured
+      enabled: false
+      # SMTP endpoint
+      host:
+      # SMTP port
+      port:
+      # enable/disable check on TLS certificate
+      insecure_skip_verify:
+      # SMTP username
+      username:
+      # SMTP password
+      password:
+      # email address in from field
+      from:
+
+logLevel: info
+
+extraArgs: []
+
+metrics:
+  enabled: false
+  port: 9001
+  serviceMonitor:
+    enabled: false
+    additionalLabels: {}
+    # namespace: monitoring
+    # interval: 30s
+    # scrapeTimeout: 10s
+
+podAnnotations: {}
+
+
+
+serviceAccount:
+  create: true
+  name: argocd-notifications-controller
+
+subscriptions: []
+  # For more information: https://argoproj-labs.github.io/argocd-notifications/triggers_and_templates/
+
+templates: 
+  # For more information: https://argoproj-labs.github.io/argocd-notifications/triggers_and_templates/
+  - name: sync-operation-status-change
+    webhook:
+      devhose:
+        method: POST
+        path: test
+        body: |
+          {
+            {{if eq .app.status.operationState.phase "Succeeded"}} "state": "success"{{end}}
+            ,
+            "clusterName": "ariatest",
+            "name": "{{.app.metadata.name}}",
+            "eventType": "namespace-provisioned",
+            "scope": "namespace"
+          }
+tolerations: []
+
+triggers:
+  # For more information: https://argoproj-labs.github.io/argocd-notifications/triggers_and_templates/
+  # Application syncing has succeeded
+  - name: sync-operation-succeeded
+    condition: app.status.operationState.phase in ['Succeeded']
+    template: sync-operation-status-change
+
+bots:
+  # For more information: https://argoproj-labs.github.io/argocd-notifications/recipients/bot/
+  slack:
+    # You have to set secret.notifiers.slack.signingSecret
+    enabled: false
+
+    updateStrategy:
+      type: Recreate
+
+    image:
+      repository: argoprojlabs/argocd-notifications
+      tag: v0.7.0
+      pullPolicy: IfNotPresent
+
+    imagePullSecrets: []
+
+    service:
+      annotations: {}
+      port: 80
+      type: LoadBalancer
+
+    serviceAccount:
+      # Specifies whether a service account should be created
+      create: true
+
+      # The name of the service account to use.
+      # If not set and create is true, a name is generated using the fullname template
+      name: argocd-notifications-bot
+
+    resources: {}
+ 
+
+    affinity: {}
+
+    tolerations: []
+
+    nodeSelector: {}
